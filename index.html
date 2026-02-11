@@ -231,6 +231,24 @@
             opacity: 1;
         }
 
+        .grid-overlay {
+            position: absolute;
+            inset: 38px;
+            pointer-events: none;
+            display: none;
+        }
+
+        .grid-overlay.active {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0;
+        }
+
+        .grid-cell {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
         .waveform {
             width: 120px;
             height: 80px;
@@ -329,6 +347,19 @@
             <!-- Zebra Pattern Overlay -->
             <div id="zebra-overlay" class="zebra-overlay"></div>
 
+            <!-- 3x3 Grid Overlay -->
+            <div id="grid-overlay" class="grid-overlay">
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+                <div class="grid-cell"></div>
+            </div>
+
             <!-- Focus Peaking Canvas -->
             <canvas id="peaking-canvas" class="focus-peaking"></canvas>
         </div>
@@ -407,7 +438,7 @@
                             <span>ISO</span>
                             <span id="val-iso" class="text-blue-700">100</span>
                         </div>
-                        <input type="range" id="input-iso" min="100" max="6400" step="100" value="100">
+                        <input type="range" id="input-iso" min="0" max="256000" step="100" value="100">
                     </div>
 
                     <!-- Shutter Speed -->
@@ -462,6 +493,27 @@
                         </button>
                         <button id="btn-record" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-3.5 rounded-lg uppercase tracking-widest shadow-md transition flex items-center justify-center gap-2">
                             <span id="record-icon">⏺</span> <span id="record-text">Record</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Singlish Controls -->
+                <div class="w-full space-y-3 pt-4 border-t border-slate-400">
+                    <div class="text-xs text-slate-900 font-black uppercase text-center mb-2">Singlish Controls Lah</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btn-snap-lah" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-3.5 rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            <span>📸</span> SNAP LAH
+                        </button>
+                        <button id="btn-record-liao" class="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold py-3.5 rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            <span id="record-liao-icon">●</span> <span id="record-liao-text">REC LIAO</span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btn-shutter-ah" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-3.5 rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            <span>⚡</span> SHUTTER AH
+                        </button>
+                        <button id="btn-grid-lor" class="bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold py-3.5 rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            <span>⊞</span> <span id="grid-lor-text">GRID LOR</span>
                         </button>
                     </div>
                 </div>
@@ -582,7 +634,7 @@
             isZebra: false,
             wheelAngle: 0,
             orbit: { phi: Math.PI / 2 - 0.4, theta: -Math.PI / 1.4, radius: 20 },
-            look: { x: 0, y: 0 },
+            look: { x: 0, y: Math.PI },
             timecode: { h: 0, m: 0, s: 0, f: 0 },
             sensorFormat: 'full',
             exposureIndex: 800,
@@ -699,6 +751,7 @@
 
             createEnvironment();
             cameramanGroup = createCinemaRig(0, 0);
+            createHumanoid(0, -10, 0xff6b6b, 'actor-front'); // 10 feet in front of camera
             createHumanoid(0, 25, 0xffffff, 'actor1'); // 25 feet away
             createHumanoid(-8, 32, 0x224466, 'actor2'); // 32 feet away
             createHumanoid(10, 35, 0xaa3344, 'actor3'); // 35 feet away
@@ -1411,6 +1464,105 @@
                 elements.btnZebra.classList.toggle('text-white', state.isZebra);
                 elements.zebraOverlay.style.display = state.isZebra ? 'block' : 'none';
             };
+
+            // Singlish Controls
+            // SNAP LAH - Take photo button
+            const btnSnapLah = document.getElementById('btn-snap-lah');
+            if (btnSnapLah) {
+                btnSnapLah.onclick = () => {
+                    if (viewMode !== '1stPerson') return;
+                    
+                    // Flash effect
+                    const flash = document.createElement('div');
+                    flash.style.cssText = 'position:fixed;inset:0;background:white;z-index:9999;pointer-events:none;';
+                    document.body.appendChild(flash);
+                    
+                    setTimeout(() => flash.remove(), 100);
+                    
+                    // Take screenshot
+                    try {
+                        renderer.domElement.toBlob((blob) => {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `snap-lah_${Date.now()}.png`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        });
+                    } catch (err) {
+                        console.log('Snap lah! (download disabled in demo)');
+                    }
+                };
+            }
+
+            // REC LIAO - Record button
+            const btnRecLiao = document.getElementById('btn-record-liao');
+            const recLiaoIcon = document.getElementById('record-liao-icon');
+            const recLiaoText = document.getElementById('record-liao-text');
+            if (btnRecLiao) {
+                btnRecLiao.onclick = () => {
+                    if (viewMode !== '1stPerson') return;
+                    
+                    state.isRecording = !state.isRecording;
+                    
+                    if (state.isRecording) {
+                        btnRecLiao.classList.remove('bg-orange-600', 'hover:bg-orange-700');
+                        btnRecLiao.classList.add('bg-green-600', 'hover:bg-green-700');
+                        recLiaoIcon.textContent = '■';
+                        recLiaoText.textContent = 'STOP LAH';
+                        
+                        // Show REC indicator
+                        document.querySelector('.rec-dot').style.display = 'inline-block';
+                        document.querySelector('.text-red-600').style.display = 'inline';
+                        
+                        // Reset timecode
+                        state.timecode = { h: 0, m: 0, s: 0, f: 0 };
+                    } else {
+                        btnRecLiao.classList.remove('bg-green-600', 'hover:bg-green-700');
+                        btnRecLiao.classList.add('bg-orange-600', 'hover:bg-orange-700');
+                        recLiaoIcon.textContent = '●';
+                        recLiaoText.textContent = 'REC LIAO';
+                    }
+                };
+            }
+
+            // SHUTTER AH - Cycle through shutter speeds
+            const btnShutterAh = document.getElementById('btn-shutter-ah');
+            const shutterSpeeds = [24, 48, 50, 100, 200, 500, 1000, 2000, 4000, 8000];
+            let currentShutterIndex = 1; // Start at 48 (1/48)
+            if (btnShutterAh) {
+                btnShutterAh.onclick = () => {
+                    currentShutterIndex = (currentShutterIndex + 1) % shutterSpeeds.length;
+                    state.shutterSpeed = shutterSpeeds[currentShutterIndex];
+                    elements.inputShutterSpeed.value = state.shutterSpeed;
+                    elements.shutterSpeedVal.textContent = `1/${state.shutterSpeed}`;
+                    
+                    // Update shutter angle based on shutter speed (for 24fps)
+                    const fps = 24;
+                    const angle = Math.round((1 / state.shutterSpeed) * fps * 360);
+                    state.shutterAngle = Math.min(360, Math.max(45, angle));
+                    elements.inputShutter.value = state.shutterAngle;
+                    elements.shutterVal.textContent = `${state.shutterAngle}°`;
+                    document.getElementById('shutter-val').textContent = state.shutterAngle;
+                };
+            }
+
+            // GRID LOR - Toggle 3x3 grid overlay
+            const btnGridLor = document.getElementById('btn-grid-lor');
+            const gridOverlay = document.getElementById('grid-overlay');
+            const gridLorText = document.getElementById('grid-lor-text');
+            let isGridOn = false;
+            if (btnGridLor && gridOverlay) {
+                btnGridLor.onclick = () => {
+                    isGridOn = !isGridOn;
+                    gridOverlay.classList.toggle('active', isGridOn);
+                    btnGridLor.classList.toggle('bg-green-600', isGridOn);
+                    btnGridLor.classList.toggle('hover:bg-green-700', isGridOn);
+                    btnGridLor.classList.toggle('bg-pink-600', !isGridOn);
+                    btnGridLor.classList.toggle('hover:bg-pink-700', !isGridOn);
+                    gridLorText.textContent = isGridOn ? 'HIDE LAH' : 'GRID LOR';
+                };
+            }
         }
 
         function setupPresets() {
@@ -1759,8 +1911,10 @@
                 if (Math.floor(t * 2) % 5 === 0 && Math.random() < 0.1) {
                     updateHistogram();
                 }
-
-                // Apply depth of field effect
+            }
+            
+            // Apply depth of field effect (including ISO brightness) in cameraman mode
+            if (viewMode === '1stPerson') {
                 applyDepthOfField();
             } else {
                 renderer.domElement.style.filter = 'none';
@@ -1782,7 +1936,15 @@
 
             // Adjust brightness based on ISO (using actual ISO value from state)
             const actualISO = state.iso; // Use the actual ISO from state
-            const isoBrightness = 1.0 + (actualISO - 100) / 6400 * 0.8;
+            // Map ISO 0-256000 to brightness multiplier: ISO 0 = very dark (0.1x), ISO 100 = normal (1.0x), ISO 256000 = very bright (5.0x)
+            let isoBrightness;
+            if (actualISO <= 100) {
+                // 0-100: scale from 0.1 to 1.0
+                isoBrightness = 0.1 + (actualISO / 100) * 0.9;
+            } else {
+                // 100-256000: scale from 1.0 to 5.0
+                isoBrightness = 1.0 + ((actualISO - 100) / 255900) * 4.0;
+            }
 
             // Adjust for shutter speed (faster shutter = darker)
             const shutterBrightness = Math.max(0.3, Math.min(2.0, 50 / state.shutterSpeed));
